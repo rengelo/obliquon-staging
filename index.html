@@ -973,6 +973,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
       const livesEl = document.querySelector("#lives");
       const timerEl = document.querySelector("#timer");
       const statusEl = document.querySelector("#status");
+      const controlKeysEls = [...document.querySelectorAll(".controls kbd")];
       const musicToggleEl = document.querySelector("#music-toggle");
       const changeNameBtn = document.querySelector("#change-name");
       const stageModalEl = document.querySelector("#stage-modal");
@@ -1908,7 +1909,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         updateHud();
         if (state.lives <= 0) {
           state.gameOver = true;
-          statusEl.textContent = "Game over. Press Space to roll again.";
+          statusEl.textContent = IS_MOBILE ? "Game over. Tap to roll again." : "Game over. Press Space to roll again.";
         } else {
           statusEl.textContent = "Watch the star cutters. Keep rolling.";
           state.player = makePlayerFromLevel(levelDataAt(state.grade));
@@ -2325,11 +2326,15 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
 
           ctx.fillStyle = `rgba(104, 215, 255, ${0.35 + blink * 0.65})`;
           ctx.font = "700 28px Courier New";
-          ctx.fillText("PRESS SPACE TO START", W / 2, H / 2 + 52);
+          ctx.fillText(IS_MOBILE ? "TAP TO START" : "PRESS SPACE TO START", W / 2, H / 2 + 52);
 
           ctx.fillStyle = "#9cb0b8";
           ctx.font = "700 16px Courier New";
-          ctx.fillText("ARROWS OR WASD TO ROLL   |   SPACE TO SELF-DESTRUCT", W / 2, H / 2 + 106);
+          ctx.fillText(
+            IS_MOBILE ? "USE THE JOYSTICK TO ROLL   |   TAP TO SELF-DESTRUCT" : "ARROWS OR WASD TO ROLL   |   SPACE TO SELF-DESTRUCT",
+            W / 2,
+            H / 2 + 106
+          );
           return;
         }
 
@@ -2347,7 +2352,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
           ctx.fillText(state.gameOver ? "GAME OVER" : "PAUSED", W / 2, H / 2 - 12);
           ctx.fillStyle = "#f4f7fb";
           ctx.font = "700 18px Courier New";
-          ctx.fillText(state.gameOver ? "PRESS SPACE" : "PRESS P", W / 2, H / 2 + 28);
+          ctx.fillText(state.gameOver ? (IS_MOBILE ? "TAP TO RESTART" : "PRESS SPACE") : "PRESS P", W / 2, H / 2 + 28);
         }
       }
 
@@ -2568,7 +2573,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         state.loading = true;
         startLevel();
         state.awaitingStart = true;
-        statusEl.textContent = "Press Space to start.";
+        statusEl.textContent = IS_MOBILE ? "Tap to start." : "Press Space to start.";
       }
 
       function handleLoadError(error) {
@@ -2586,7 +2591,16 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
           loadMaps();
           startLevel();
           state.awaitingStart = true;
-          statusEl.textContent = "Press Space to start.";
+          statusEl.textContent = IS_MOBILE ? "Tap to start." : "Press Space to start.";
+          if (IS_MOBILE) {
+            joystickEl.classList.add("is-mobile");
+            if (controlKeysEls.length >= 4) {
+              controlKeysEls[0].textContent = "Touch Stick";
+              controlKeysEls[1].textContent = "Tap Start";
+              controlKeysEls[2].textContent = "Tap Boom";
+              controlKeysEls[3].textContent = "P Pause";
+            }
+          }
           updateMusicButton();
         } catch (error) {
           handleLoadError(error);
@@ -2646,16 +2660,25 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
 
       canvas.addEventListener("pointerdown", (event) => {
         ensureMusicPlayback();
+        if (IS_MOBILE) {
+          handleMobilePrimaryAction();
+          return;
+        }
         canvas.setPointerCapture(event.pointerId);
         steerFromPointer(event);
       });
 
-      canvas.addEventListener("pointermove", steerFromPointer);
+      canvas.addEventListener("pointermove", (event) => {
+        if (IS_MOBILE) return;
+        steerFromPointer(event);
+      });
       canvas.addEventListener("pointerup", () => {
-        keys.delete("arrowleft");
-        keys.delete("arrowright");
-        keys.delete("arrowup");
-        keys.delete("arrowdown");
+        if (IS_MOBILE) return;
+        clearMovementKeys();
+      });
+      canvas.addEventListener("pointercancel", () => {
+        if (IS_MOBILE) return;
+        clearMovementKeys();
       });
 
       function setKey(key, active) {
@@ -2709,6 +2732,25 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         }
       }
 
+      function updateJoystickFromEvent(event) {
+        const rect = joystickEl.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const maxRadius = rect.width * 0.28;
+        let dx = event.clientX - centerX;
+        let dy = event.clientY - centerY;
+        const distance = Math.hypot(dx, dy);
+        if (distance > maxRadius && distance > 0) {
+          const scale = maxRadius / distance;
+          dx *= scale;
+          dy *= scale;
+        }
+        state.touchJoystick.dx = dx;
+        state.touchJoystick.dy = dy;
+        updateJoystickVisual(dx, dy);
+        applyJoystickVector(dx, dy);
+      }
+
       function steerFromPointer(event) {
         if (event.buttons === 0) return;
         const rect = canvas.getBoundingClientRect();
@@ -2721,6 +2763,36 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         setKey("arrowup", dy < -12);
         setKey("arrowdown", dy > 12);
       }
+
+      joystickEl.addEventListener("pointerdown", (event) => {
+        if (!IS_MOBILE) return;
+        ensureMusicPlayback();
+        event.preventDefault();
+        event.stopPropagation();
+        joystickEl.setPointerCapture(event.pointerId);
+        state.touchJoystick.active = true;
+        state.touchJoystick.pointerId = event.pointerId;
+        updateJoystickFromEvent(event);
+      });
+
+      joystickEl.addEventListener("pointermove", (event) => {
+        if (!IS_MOBILE) return;
+        if (!state.touchJoystick.active || state.touchJoystick.pointerId !== event.pointerId) return;
+        event.preventDefault();
+        updateJoystickFromEvent(event);
+      });
+
+      joystickEl.addEventListener("pointerup", (event) => {
+        if (!IS_MOBILE) return;
+        if (state.touchJoystick.pointerId !== event.pointerId) return;
+        releaseJoystick();
+      });
+
+      joystickEl.addEventListener("pointercancel", (event) => {
+        if (!IS_MOBILE) return;
+        if (state.touchJoystick.pointerId !== event.pointerId) return;
+        releaseJoystick();
+      });
 
       nextStageBtn.addEventListener("click", continueToNextStage);
       changeNameBtn.addEventListener("click", () => {
