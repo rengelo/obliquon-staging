@@ -1,0 +1,19 @@
+; 16 columns x 12 rows
+; 0-3 = ground height
+; X = block
+; . = ground height 0
+; slope tile format: 1N 1NE 2E 2SE 3S 2SW 1W 3NW
+; slope rule: hDIR means slope from height (h-1) up to height h
+
+0011 1111 0000 0000
+0112 2221 1100 0000
+1122 3322 1110 0000
+1223 3X32 2111 0000
+1223 3332 2111 0000
+1122 3322 1111 1000
+0112 2221 11X1 1100
+0011 1111 1222 2110
+0000 0111 2233 2210
+0000 0011 1222 2110
+0000 0001 1111 1100
+0000 0000 0111 1000

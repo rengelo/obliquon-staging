@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Obliquon Level Editor</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #081015;
+        --panel: #10181d;
+        --edge: #2d3b42;
+        --text: #edf5f8;
+        --muted: #a7b8bf;
+        --accent: #f4d35e;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top, rgba(90, 140, 170, 0.16), transparent 32%),
+          var(--bg);
+        color: var(--text);
+        font-family: Verdana, Arial, sans-serif;
+      }
+
+      .shell {
+        max-width: 1380px;
+        margin: 0 auto;
+        padding: 18px;
+      }
+
+      .header {
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        color: var(--accent);
+        font: 700 34px "Courier New", monospace;
+      }
+
+      .header p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(360px, 460px) minmax(520px, 1fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .panel {
+        border: 2px solid var(--edge);
+        border-radius: 8px;
+        background: linear-gradient(180deg, #121b20, #0d1418);
+        box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--edge);
+      }
+
+      .panel-head h2 {
+        margin: 0;
+        font: 700 20px "Courier New", monospace;
+        color: var(--text);
+      }
+
+      .panel-body {
+        padding: 16px;
+      }
+
+      .controls {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .control-group {
+        display: grid;
+        gap: 8px;
+      }
+
+      .control-group h3 {
+        margin: 0;
+        color: var(--muted);
+        font: 700 14px "Courier New", monospace;
+        text-transform: uppercase;
+      }
+
+      .swatches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .swatch {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border: 1px solid #3b4850;
+        border-radius: 6px;
+        background: #11181d;
+        color: var(--text);
+        font: 700 13px "Courier New", monospace;
+        cursor: pointer;
+      }
+
+      .swatch.is-active {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px rgba(244, 211, 94, 0.24);
+      }
+
+      .swatch.is-meta {
+        background: #141a22;
+      }
+
+      .swatch-chip {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: #fff;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      button {
+        border: 1px solid #3b4850;
+        border-radius: 6px;
+        padding: 9px 12px;
+        background: #12191e;
+        color: var(--text);
+        font: 700 13px "Courier New", monospace;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #182128;
+      }
+
+      .primary {
+        color: #0d1114;
+        background: linear-gradient(180deg, #f7db74, #e9bc3d);
+        border-color: #e9bc3d;
+      }
+
+      .primary:hover {
+        background: linear-gradient(180deg, #ffe28b, #efc64f);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 640px;
+        resize: vertical;
+        border: 1px solid var(--edge);
+        border-radius: 6px;
+        background: #0b1115;
+        color: #eef5f8;
+        padding: 14px;
+        font: 700 18px/1.45 "Courier New", monospace;
+        tab-size: 2;
+      }
+
+      .export {
+        margin-top: 14px;
+      }
+
+      .export textarea {
+        min-height: 220px;
+        font-size: 16px;
+      }
+
+      .help {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .preview-wrap {
+        display: grid;
+        gap: 12px;
+        justify-items: center;
+      }
+
+      canvas {
+        width: 100%;
+        max-width: 768px;
+        aspect-ratio: 4 / 3;
+        display: block;
+        background: #0a1115;
+        border: 8px solid #06090b;
+        box-shadow: inset 0 0 0 2px #2a3840;
+        image-rendering: pixelated;
+      }
+
+      .status {
+        min-height: 22px;
+        color: var(--muted);
+        font: 700 14px "Courier New", monospace;
+      }
+
+      @media (max-width: 1120px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        textarea {
+          min-height: 420px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="header">
+        <h1>Obliquon Level Editor</h1>
+        <p>Paint tiles on the preview or edit the ASCII directly. Copy the matrix into the game when you are done.</p>
+      </header>
+
+      <section class="layout">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>ASCII Matrix</h2>
+            <div class="actions">
+              <button id="reset-grid" type="button">Reset to 5</button>
+              <button id="copy-grid" class="primary" type="button">Copy ASCII</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="controls">
+              <div class="control-group">
+                <h3>Tile Paint</h3>
+                <div class="swatches" id="swatches"></div>
+              </div>
+              <div class="control-group">
+                <h3>Markers</h3>
+                <div class="swatches" id="entity-tools"></div>
+              </div>
+            </div>
+            <textarea id="ascii-grid" spellcheck="false"></textarea>
+            <div class="help">
+              16 columns by 12 rows. Valid tokens: <code>5 8 2 4 6 9 3 7 1 G E T I B</code>.<br>
+              In tile mode, click the preview to paint with the selected token. Right-click paints flat <code>5</code>.<br>
+              In marker mode, click to place <code>@player</code>, <code>@target</code>, or <code>@enemy typeN</code>. Right-click removes markers on that tile.
+            </div>
+            <div class="export">
+              <div class="actions" style="margin-bottom:8px;">
+                <button id="copy-level" class="primary" type="button">Copy Full Level Data</button>
+              </div>
+              <textarea id="level-output" spellcheck="false" readonly></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Rendered Preview</h2>
+            <div class="status" id="status">Ready.</div>
+          </div>
+          <div class="panel-body preview-wrap">
+            <canvas id="preview" width="768" height="576"></canvas>
+            <div class="status" id="coords">Hover a tile to see coordinates.</div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const COLS = 16;
+      const ROWS = 12;
+      const TILE = 48;
+
+      const asciiEl = document.querySelector("#ascii-grid");
+      const canvas = document.querySelector("#preview");
+      const ctx = canvas.getContext("2d");
+      const statusEl = document.querySelector("#status");
+      const coordsEl = document.querySelector("#coords");
+      const swatchesEl = document.querySelector("#swatches");
+      const entityToolsEl = document.querySelector("#entity-tools");
+      const copyBtn = document.querySelector("#copy-grid");
+      const copyLevelBtn = document.querySelector("#copy-level");
+      const resetBtn = document.querySelector("#reset-grid");
+      const levelOutputEl = document.querySelector("#level-output");
+
+      const terrainColors = {
+        south: "#d8efe4",
+        east: "#9fd7bf",
+        flat: "#5a9f82",
+        west: "#3f7162",
+        north: "#1f3833",
+        northeast: "#c5e5d6",
+        southeast: "#b6e0ca",
+        southwest: "#4e8772",
+        northwest: "#2b4a42"
+      };
+
+      const keypadSlopeAliases = {
+        "8": "north",
+        "2": "south",
+        "4": "west",
+        "6": "east",
+        "9": "northeast",
+        "3": "southeast",
+        "7": "northwest",
+        "1": "southwest"
+      };
+
+      const invertedDiagonalAliases = {
+        G: "northeast",
+        E: "southeast",
+        T: "northwest",
+        I: "southwest"
+      };
+
+      const palette = [
+        { token: "5", label: "Flat", color: terrainColors.flat },
+        { token: "8", label: "North", color: terrainColors.north },
+        { token: "2", label: "South", color: terrainColors.south },
+        { token: "4", label: "West", color: terrainColors.west },
+        { token: "6", label: "East", color: terrainColors.east },
+        { token: "7", label: "NW", color: terrainColors.northwest },
+        { token: "9", label: "NE", color: terrainColors.northeast },
+        { token: "1", label: "SW", color: terrainColors.southwest },
+        { token: "3", label: "SE", color: terrainColors.southeast },
+        { token: "T", label: "NW Inv", color: terrainColors.northwest },
+        { token: "G", label: "NE Inv", color: terrainColors.northeast },
+        { token: "I", label: "SW Inv", color: terrainColors.southwest },
+        { token: "E", label: "SE Inv", color: terrainColors.southeast },
+        { token: "B", label: "Block", color: "#56636b" }
+      ];
+
+      const entityTools = [
+        { token: "player", label: "Player", color: "#68d7ff" },
+        { token: "target", label: "Target", color: "#ff4a5d" },
+        { token: "type1", label: "Enemy 1", color: "#7cff5f" },
+        { token: "type2", label: "Enemy 2", color: "#ff9a54" },
+        { token: "type3", label: "Enemy 3", color: "#68d7ff" }
+      ];
+
+      let selectedToken = "5";
+      let toolMode = "tile";
+      let selectedEntity = "player";
+      const markers = {
+        player: null,
+        targets: [],
+        enemies: []
+      };
+
+      function blankAscii() {
+        return Array.from({ length: ROWS }, () => Array(COLS).fill("5").join(" ")).join("\n");
+      }
+
+      function isDiagonalSlope(kind) {
+        return kind === "northeast" || kind === "southeast" || kind === "northwest" || kind === "southwest";
+      }
+
+      function parseToken(token) {
+        if (token === "B") return { block: true, slope: null, invertPaint: false };
+        if (token === "5") return { block: false, slope: null, invertPaint: false };
+        if (keypadSlopeAliases[token]) return { block: false, slope: keypadSlopeAliases[token], invertPaint: false };
+        if (invertedDiagonalAliases[token]) return { block: false, slope: invertedDiagonalAliases[token], invertPaint: true };
+        throw new Error(`Invalid token '${token}'`);
+      }
+
+      function parseAscii(text) {
+        const rows = text
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+
+        if (rows.length !== ROWS) {
+          throw new Error(`Need exactly ${ROWS} rows.`);
+        }
+
+        return rows.map((row, y) => {
+          const parts = row.split(/\s+/).filter(Boolean);
+          if (parts.length !== COLS) {
+            throw new Error(`Row ${y + 1} needs exactly ${COLS} tiles.`);
+          }
+          return parts.map(parseToken);
+        });
+      }
+
+      function slopeKindAt(grid, tx, ty) {
+        const tile = grid[ty][tx];
+        return tile.slope || "flat";
+      }
+
+      function diagonalSplitAt(grid, tx, ty) {
+        const north = ty > 0 ? slopeKindAt(grid, tx, ty - 1) : "flat";
+        const south = ty < ROWS - 1 ? slopeKindAt(grid, tx, ty + 1) : "flat";
+        const west = tx > 0 ? slopeKindAt(grid, tx - 1, ty) : "flat";
+        const east = tx < COLS - 1 ? slopeKindAt(grid, tx + 1, ty) : "flat";
+
+        if (north === "east" && west === "south") return { a: "east", b: "south", axis: "nw-se" };
+        if (north === "west" && east === "south") return { a: "west", b: "south", axis: "ne-sw" };
+        if (south === "east" && west === "north") return { a: "north", b: "east", axis: "ne-sw" };
+        if (south === "west" && east === "north") return { a: "north", b: "west", axis: "nw-se" };
+        return null;
+      }
+
+      function drawSlopeTile(px, py, split, kind, invertPaint = false) {
+        if (isDiagonalSlope(kind)) {
+          ctx.fillStyle = terrainColors.flat;
+          ctx.fillRect(px, py, TILE, TILE);
+
+          ctx.fillStyle = terrainColors[kind];
+          ctx.beginPath();
+          if (kind === "northeast") {
+            if (invertPaint) {
+              ctx.moveTo(px, py);
+              ctx.lineTo(px + TILE, py + TILE);
+              ctx.lineTo(px, py + TILE);
+            } else {
+              ctx.moveTo(px + TILE, py);
+              ctx.lineTo(px + TILE, py + TILE);
+              ctx.lineTo(px, py);
+            }
+          } else if (kind === "southeast") {
+            if (invertPaint) {
+              ctx.moveTo(px, py);
+              ctx.lineTo(px + TILE, py);
+              ctx.lineTo(px, py + TILE);
+            } else {
+              ctx.moveTo(px + TILE, py + TILE);
+              ctx.lineTo(px, py + TILE);
+              ctx.lineTo(px + TILE, py);
+            }
+          } else if (kind === "northwest") {
+            if (invertPaint) {
+              ctx.moveTo(px + TILE, py);
+              ctx.lineTo(px + TILE, py + TILE);
+              ctx.lineTo(px, py + TILE);
+            } else {
+              ctx.moveTo(px, py);
+              ctx.lineTo(px + TILE, py);
+              ctx.lineTo(px, py + TILE);
+            }
+          } else if (invertPaint) {
+            ctx.moveTo(px, py);
+            ctx.lineTo(px + TILE, py);
+            ctx.lineTo(px + TILE, py + TILE);
+          } else {
+            ctx.moveTo(px, py + TILE);
+            ctx.lineTo(px, py);
+            ctx.lineTo(px + TILE, py + TILE);
+          }
+          ctx.closePath();
+          ctx.fill();
+          return;
+        }
+
+        if (!split) {
+          ctx.fillStyle = terrainColors[kind];
+          ctx.fillRect(px, py, TILE, TILE);
+          return;
+        }
+
+        if (split.axis === "nw-se") {
+          ctx.fillStyle = terrainColors[split.a];
+          ctx.beginPath();
+          ctx.moveTo(px, py);
+          ctx.lineTo(px + TILE, py);
+          ctx.lineTo(px, py + TILE);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = terrainColors[split.b];
+          ctx.beginPath();
+          ctx.moveTo(px + TILE, py);
+          ctx.lineTo(px + TILE, py + TILE);
+          ctx.lineTo(px, py + TILE);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          ctx.fillStyle = terrainColors[split.a];
+          ctx.beginPath();
+          ctx.moveTo(px, py);
+          ctx.lineTo(px + TILE, py);
+          ctx.lineTo(px + TILE, py + TILE);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = terrainColors[split.b];
+          ctx.beginPath();
+          ctx.moveTo(px, py);
+          ctx.lineTo(px + TILE, py + TILE);
+          ctx.lineTo(px, py + TILE);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+
+      function render(grid) {
+        ctx.fillStyle = "#050708";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let y = 0; y < ROWS; y += 1) {
+          for (let x = 0; x < COLS; x += 1) {
+            const tile = grid[y][x];
+            const px = x * TILE;
+            const py = y * TILE;
+
+            if (tile.block) {
+              ctx.fillStyle = "#111";
+              ctx.fillRect(px, py, TILE, TILE);
+              ctx.fillStyle = "#56636b";
+              ctx.fillRect(px + 8, py + 8, TILE - 16, TILE - 16);
+              ctx.fillStyle = "#20272d";
+              ctx.fillRect(px + 14, py + 14, TILE - 28, TILE - 28);
+              continue;
+            }
+
+            const kind = slopeKindAt(grid, x, y);
+            const split = kind === "flat" ? diagonalSplitAt(grid, x, y) : null;
+            drawSlopeTile(px, py, split, kind, tile.invertPaint);
+
+            if (tile.slope && !isDiagonalSlope(tile.slope)) {
+              ctx.fillStyle = "rgba(255,255,255,.08)";
+              ctx.fillRect(px + 4, py + 4, TILE - 8, 3);
+              ctx.fillStyle = "rgba(0,0,0,.20)";
+              ctx.fillRect(px + 4, py + TILE - 7, TILE - 8, 3);
+            }
+          }
+        }
+
+        drawMarkers();
+      }
+
+      function drawMarkers() {
+        if (markers.player) {
+          drawPlayerMarker(markers.player.tx, markers.player.ty);
+        }
+        for (const target of markers.targets) {
+          drawTargetMarker(target.tx, target.ty);
+        }
+        for (const enemy of markers.enemies) {
+          drawEnemyMarker(enemy.tx, enemy.ty, enemy.type);
+        }
+      }
+
+      function drawPlayerMarker(tx, ty) {
+        const x = tx * TILE + TILE / 2;
+        const y = ty * TILE + TILE / 2;
+        ctx.fillStyle = "rgba(0,0,0,.35)";
+        ctx.beginPath();
+        ctx.ellipse(x + 4, y + 10, 15, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const grad = ctx.createRadialGradient(x - 4, y - 5, 2, x, y, 16);
+        grad.addColorStop(0, "#f6fbff");
+        grad.addColorStop(0.38, "#7fd7ff");
+        grad.addColorStop(1, "#1e5cc9");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, 13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#dff7ff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      function drawTargetMarker(tx, ty) {
+        const x = tx * TILE + TILE / 2;
+        const y = ty * TILE + TILE / 2;
+        ctx.fillStyle = "#ff3348";
+        ctx.beginPath();
+        ctx.arc(x, y, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffd0d5";
+        ctx.fillRect(x - 3, y - 3, 6, 6);
+      }
+
+      function drawEnemyMarker(tx, ty, type) {
+        const x = tx * TILE + TILE / 2;
+        const y = ty * TILE + TILE / 2;
+        const hue = type === "type2" ? "#ff9a54" : type === "type3" ? "#68d7ff" : "#7cff5f";
+        const stroke = type === "type2" ? "#5e2500" : type === "type3" ? "#0b4162" : "#163d1d";
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = "rgba(0,0,0,.35)";
+        ctx.beginPath();
+        ctx.ellipse(4, 10, 15, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        for (let i = 0; i < 10; i += 1) {
+          const r = i % 2 === 0 ? 18 : 7;
+          const a = (Math.PI * 2 * i) / 10;
+          const px = Math.cos(a) * r;
+          const py = Math.sin(a) * r;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = hue;
+        ctx.fill();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = "#eef6fb";
+        ctx.fillRect(-4, -4, 8, 8);
+        ctx.restore();
+      }
+
+      function syncPreview() {
+        try {
+          const grid = parseAscii(asciiEl.value);
+          render(grid);
+          levelOutputEl.value = buildLevelData();
+          statusEl.textContent =
+            toolMode === "tile"
+              ? `Ready. ${COLS}x${ROWS}. Tile: ${selectedToken}`
+              : `Ready. ${COLS}x${ROWS}. Marker: ${selectedEntity}`;
+          statusEl.style.color = "#a7b8bf";
+        } catch (error) {
+          statusEl.textContent = error.message;
+          statusEl.style.color = "#ff8f98";
+        }
+      }
+
+      function buildSwatches() {
+        for (const item of palette) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `swatch${item.token === selectedToken ? " is-active" : ""}`;
+          button.dataset.token = item.token;
+          button.innerHTML = `<span class="swatch-chip" style="background:${item.color}"></span><span>${item.token} ${item.label}</span>`;
+          button.addEventListener("click", () => {
+            selectedToken = item.token;
+            toolMode = "tile";
+            refreshToolHighlights();
+            syncPreview();
+          });
+          swatchesEl.appendChild(button);
+        }
+      }
+
+      function buildEntityTools() {
+        for (const item of entityTools) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `swatch is-meta${item.token === selectedEntity && toolMode === "marker" ? " is-active" : ""}`;
+          button.dataset.token = item.token;
+          button.innerHTML = `<span class="swatch-chip" style="background:${item.color}"></span><span>${item.label}</span>`;
+          button.addEventListener("click", () => {
+            selectedEntity = item.token;
+            toolMode = "marker";
+            refreshToolHighlights();
+            syncPreview();
+          });
+          entityToolsEl.appendChild(button);
+        }
+      }
+
+      function refreshToolHighlights() {
+        for (const swatch of swatchesEl.children) {
+          swatch.classList.toggle("is-active", toolMode === "tile" && swatch.dataset.token === selectedToken);
+        }
+        for (const tool of entityToolsEl.children) {
+          tool.classList.toggle("is-active", toolMode === "marker" && tool.dataset.token === selectedEntity);
+        }
+      }
+
+      function asciiRows() {
+        return asciiEl.value
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((row) => row.split(/\s+/).filter(Boolean));
+      }
+
+      function setTile(tx, ty, token) {
+        const rows = asciiRows();
+        if (rows.length !== ROWS) return;
+        if (!rows[ty] || rows[ty].length !== COLS) return;
+        rows[ty][tx] = token;
+        asciiEl.value = rows.map((row) => row.join(" ")).join("\n");
+        syncPreview();
+      }
+
+      function isBlockedAt(tx, ty) {
+        const rows = asciiRows();
+        return rows[ty] && rows[ty][tx] === "B";
+      }
+
+      function placeMarker(tx, ty) {
+        if (isBlockedAt(tx, ty)) {
+          statusEl.textContent = "Markers cannot be placed on blockers.";
+          statusEl.style.color = "#ff8f98";
+          return;
+        }
+        if (selectedEntity === "player") {
+          markers.player = { tx, ty };
+        } else if (selectedEntity === "target") {
+          if (!markers.targets.some((target) => target.tx === tx && target.ty === ty)) {
+            markers.targets.push({ tx, ty });
+          }
+        } else if (!markers.enemies.some((enemy) => enemy.tx === tx && enemy.ty === ty && enemy.type === selectedEntity)) {
+          markers.enemies.push({ type: selectedEntity, tx, ty });
+        }
+        syncPreview();
+      }
+
+      function removeMarkersAt(tx, ty) {
+        if (markers.player && markers.player.tx === tx && markers.player.ty === ty) {
+          markers.player = null;
+        }
+        markers.targets = markers.targets.filter((target) => target.tx !== tx || target.ty !== ty);
+        markers.enemies = markers.enemies.filter((enemy) => enemy.tx !== tx || enemy.ty !== ty);
+        syncPreview();
+      }
+
+      function buildLevelData() {
+        const lines = [];
+        if (markers.player) {
+          lines.push(`@player ${markers.player.tx} ${markers.player.ty}`);
+        }
+        for (const target of markers.targets) {
+          lines.push(`@target ${target.tx} ${target.ty}`);
+        }
+        for (const enemy of markers.enemies) {
+          lines.push(`@enemy ${enemy.type} ${enemy.tx} ${enemy.ty}`);
+        }
+        if (lines.length > 0) {
+          lines.push("");
+        }
+        lines.push(asciiEl.value.trim());
+        return lines.join("\n");
+      }
+
+      function pointerTile(event) {
+        const rect = canvas.getBoundingClientRect();
+        const tx = Math.floor(((event.clientX - rect.left) / rect.width) * COLS);
+        const ty = Math.floor(((event.clientY - rect.top) / rect.height) * ROWS);
+        if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) return null;
+        return { tx, ty };
+      }
+
+      asciiEl.addEventListener("input", syncPreview);
+
+      canvas.addEventListener("click", (event) => {
+        const tile = pointerTile(event);
+        if (!tile) return;
+        if (toolMode === "tile") setTile(tile.tx, tile.ty, selectedToken);
+        else placeMarker(tile.tx, tile.ty);
+      });
+
+      canvas.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+        const tile = pointerTile(event);
+        if (!tile) return;
+        if (toolMode === "tile") setTile(tile.tx, tile.ty, "5");
+        else removeMarkersAt(tile.tx, tile.ty);
+      });
+
+      canvas.addEventListener("pointermove", (event) => {
+        const tile = pointerTile(event);
+        coordsEl.textContent = tile ? `Tile x:${tile.tx} y:${tile.ty}` : "Outside grid.";
+      });
+
+      canvas.addEventListener("pointerleave", () => {
+        coordsEl.textContent = "Hover a tile to see coordinates.";
+      });
+
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(asciiEl.value.trim());
+          statusEl.textContent = "ASCII copied.";
+          statusEl.style.color = "#86df95";
+        } catch (error) {
+          statusEl.textContent = "Copy failed. You can still copy from the textarea.";
+          statusEl.style.color = "#ff8f98";
+        }
+      });
+
+      copyLevelBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(buildLevelData());
+          statusEl.textContent = "Full level data copied.";
+          statusEl.style.color = "#86df95";
+        } catch (error) {
+          statusEl.textContent = "Copy failed. You can still copy from the export box.";
+          statusEl.style.color = "#ff8f98";
+        }
+      });
+
+      resetBtn.addEventListener("click", () => {
+        asciiEl.value = blankAscii();
+        markers.player = null;
+        markers.targets = [];
+        markers.enemies = [];
+        syncPreview();
+      });
+
+      asciiEl.value = blankAscii();
+      buildSwatches();
+      buildEntityTools();
+      refreshToolHighlights();
+      syncPreview();
+    </script>
+  </body>
+</html>

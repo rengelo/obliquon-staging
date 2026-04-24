@@ -1,0 +1,135 @@
+:root {
+  color-scheme: dark;
+  --ink: #f4f7fb;
+  --muted: #99b2b8;
+  --panel: #11151a;
+  --edge: #39464d;
+  --green: #49d65d;
+  --red: #ff384c;
+  --gold: #f4d35e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, .03) 1px, transparent 1px),
+    #0b0f12;
+  background-size: 24px 24px;
+  color: var(--ink);
+  font-family: "Trebuchet MS", Verdana, Arial, sans-serif;
+}
+
+.shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.cabinet {
+  width: min(100%, 936px);
+  border: 3px solid #202a30;
+  border-radius: 8px;
+  background: #121820;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, .45);
+}
+
+.screen-bar,
+.panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+}
+
+h1 {
+  margin: 0;
+  color: var(--gold);
+  font-family: "Courier New", monospace;
+  font-size: 28px;
+  letter-spacing: 0;
+}
+
+.hud,
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hud span {
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.hud strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #050708;
+  border-block: 3px solid #27333a;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+
+.panel {
+  min-height: 64px;
+}
+
+.panel p {
+  margin: 0;
+  color: #d7e1e5;
+  font-size: 16px;
+}
+
+kbd {
+  min-width: 54px;
+  padding: 7px 9px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  background: var(--panel);
+  color: #cce9d1;
+  font: 700 13px "Courier New", monospace;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .shell {
+    padding: 8px;
+    place-items: start center;
+  }
+
+  .screen-bar,
+  .panel {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 10px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .hud span,
+  .panel p {
+    font-size: 14px;
+  }
+}
