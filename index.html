@@ -450,11 +450,33 @@
           grid-template-columns: 1fr;
         }
 
+        .cabinet {
+          order: 1;
+        }
+
+        .side-panel[aria-label="Leaderboard panel"] {
+          order: 2;
+        }
+
+        .side-panel[aria-label="Tribute note"] {
+          order: 3;
+        }
+
         .screen-bar,
         .panel {
           align-items: flex-start;
           flex-direction: column;
           padding: 10px;
+        }
+
+        .game-stage {
+          padding-bottom: 156px;
+        }
+
+        .touch-joystick {
+          left: 50%;
+          bottom: 14px;
+          transform: translateX(-50%);
         }
 
         h1 {
@@ -1014,12 +1036,15 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
       const PLAYER_RAMP_PULL = 0.136;
       const PLAYER_COAST = 0.988;
       const PLAYER_TURN_RESISTANCE = 0.72;
+      const MOBILE_JOYSTICK_RADIUS = 36;
+      const MOBILE_JOYSTICK_ACCEL_GAIN = 1.8;
       const ENEMY_ACCEL = 0.061;
       const ENEMY_RAMP_PULL = 0.014;
       const ENEMY_RESPAWN_MS = 5000;
       const EXTRA_BALL_POINTS = 5000;
       const STAGE_PENALTY_INTERVAL_MS = 10000;
       const STAGE_PENALTY_POINTS = 50;
+      const FIXED_STEP_MS = 1000 / 60;
       const ENEMY_PLANS = [
         ["type1", "type1"],
         ["type1", "type1", "type2"],
@@ -1055,6 +1080,8 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
           dx: 0,
           dy: 0
         },
+        frameAccumulator: 0,
+        lastFrameTime: 0,
         shake: 0,
         flash: 0,
         grid: [],
@@ -1773,6 +1800,14 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         if (keys.has("arrowright") || keys.has("d")) ax += PLAYER_ACCEL;
         if (keys.has("arrowup") || keys.has("w")) ay -= PLAYER_ACCEL;
         if (keys.has("arrowdown") || keys.has("s")) ay += PLAYER_ACCEL;
+
+        if (IS_MOBILE && state.touchJoystick.active) {
+          const touchX = Math.max(-1, Math.min(1, state.touchJoystick.dx / MOBILE_JOYSTICK_RADIUS));
+          const touchY = Math.max(-1, Math.min(1, state.touchJoystick.dy / MOBILE_JOYSTICK_RADIUS));
+          const deadZone = 0.08;
+          ax += Math.abs(touchX) > deadZone ? touchX * PLAYER_ACCEL * MOBILE_JOYSTICK_ACCEL_GAIN : 0;
+          ay += Math.abs(touchY) > deadZone ? touchY * PLAYER_ACCEL * MOBILE_JOYSTICK_ACCEL_GAIN : 0;
+        }
 
         const scale = speedScale();
         ax *= scale;
@@ -2558,9 +2593,13 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
       }
 
       function loop(time) {
-        const deltaMs = Math.min(100, Math.max(0, time - (loop.lastTime || time)));
-        loop.lastTime = time;
-        update(deltaMs);
+        const deltaMs = Math.min(100, Math.max(0, time - (state.lastFrameTime || time)));
+        state.lastFrameTime = time;
+        state.frameAccumulator = Math.min(250, state.frameAccumulator + deltaMs);
+        while (state.frameAccumulator >= FIXED_STEP_MS) {
+          update(FIXED_STEP_MS);
+          state.frameAccumulator -= FIXED_STEP_MS;
+        }
         draw(time);
         requestAnimationFrame(loop);
       }
@@ -2571,6 +2610,8 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         state.lives = 3;
         state.gameOver = false;
         state.loading = true;
+        state.frameAccumulator = 0;
+        state.lastFrameTime = 0;
         startLevel();
         state.awaitingStart = true;
         statusEl.textContent = IS_MOBILE ? "Tap to start." : "Press Space to start.";
@@ -2589,6 +2630,8 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         try {
           loadPlayerName();
           loadMaps();
+          state.frameAccumulator = 0;
+          state.lastFrameTime = 0;
           startLevel();
           state.awaitingStart = true;
           statusEl.textContent = IS_MOBILE ? "Tap to start." : "Press Space to start.";
@@ -2698,6 +2741,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
       }
 
       function applyJoystickVector(dx, dy) {
+        if (IS_MOBILE) return;
         const threshold = 14;
         setKey("arrowleft", dx < -threshold);
         setKey("arrowright", dx > threshold);
@@ -2736,7 +2780,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         const rect = joystickEl.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-        const maxRadius = rect.width * 0.28;
+        const maxRadius = MOBILE_JOYSTICK_RADIUS;
         let dx = event.clientX - centerX;
         let dy = event.clientY - centerY;
         const distance = Math.hypot(dx, dy);
