@@ -142,7 +142,21 @@ async function submitScore(body: SubmitScoreBody, origin: string | null) {
     return json({ error: "score saved but run could not be finalized" }, 500, origin);
   }
 
-  return json({ ok: true }, 200, origin);
+  const { count: betterCount, error: rankError } = await supabase
+    .from("leaderboard_scores")
+    .select("*", { count: "exact", head: true })
+    .eq("grade", body.grade)
+    .eq("has_level_score", true)
+    .or(
+      `level_score.gt.${body.levelScore},and(level_score.eq.${body.levelScore},time_ms.lt.${body.timeMs})`
+    );
+
+  if (rankError) {
+    console.error("grade rank query failed", rankError);
+    return json({ ok: true, gradeRank: null }, 200, origin);
+  }
+
+  return json({ ok: true, gradeRank: (betterCount ?? 0) + 1 }, 200, origin);
 }
 
 async function getLeaderboards(body: GetLeaderboardsBody, origin: string | null) {

@@ -4,6 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Obliquon</title>
+    <meta name="description" content="A modern tribute to an arcade oddity: roll the sphere, read the slopes, survive the stars.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Obliquon">
+    <meta property="og:description" content="Roll the sphere, read the slopes, survive the stars.">
+    <meta property="og:url" content="https://rengelo.github.io/obliquon/">
+    <meta property="og:image" content="https://rengelo.github.io/obliquon/share-preview.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Obliquon">
+    <meta name="twitter:description" content="Roll the sphere, read the slopes, survive the stars.">
+    <meta name="twitter:image" content="https://rengelo.github.io/obliquon/share-preview.png">
     <style>
       :root {
         color-scheme: dark;
@@ -1060,6 +1072,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
             <h1>OBLIQUON</h1>
             <div class="hud" aria-live="polite">
               <span>Score <strong id="score">00000</strong></span>
+              <span>Level <strong id="level-score">00000</strong></span>
               <span>Grade <strong id="level">1</strong></span>
               <span>Balls <strong id="lives">3</strong></span>
               <span class="timer">Time <strong id="timer">00:00</strong></span>
@@ -1112,7 +1125,9 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         <div class="stats">
           <div><span>Time</span><strong id="modal-time">00:00</strong></div>
           <div><span>Penalty</span><strong id="modal-penalty">00000</strong></div>
-          <div><span>Score</span><strong id="modal-score">00000</strong></div>
+          <div><span>Level Score</span><strong id="modal-score">00000</strong></div>
+          <div><span>Total Score</span><strong id="modal-total-score">00000</strong></div>
+          <div><span>Rank</span><strong id="modal-rank">#--</strong></div>
         </div>
         <div class="share-header">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1157,6 +1172,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
       const boomButtonEl = document.querySelector("#touch-boom");
 
       const scoreEl = document.querySelector("#score");
+      const levelScoreEl = document.querySelector("#level-score");
       const levelEl = document.querySelector("#level");
       const livesEl = document.querySelector("#lives");
       const timerEl = document.querySelector("#timer");
@@ -1170,6 +1186,8 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
       const modalTimeEl = document.querySelector("#modal-time");
       const modalPenaltyEl = document.querySelector("#modal-penalty");
       const modalScoreEl = document.querySelector("#modal-score");
+      const modalTotalScoreEl = document.querySelector("#modal-total-score");
+      const modalRankEl = document.querySelector("#modal-rank");
       const nextStageBtn = document.querySelector("#next-stage");
       const copyShareBtn = document.querySelector("#copy-share");
       const shareImageBtn = document.querySelector("#share-image");
@@ -1213,6 +1231,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
       const STAGE_INTRO_MS = 3000;
       const PLAYER_RESPAWN_DELAY_MS = 2000;
       const PLAYER_RESPAWN_INVINCIBLE_TICKS = 330;
+      const DISTANCE_SCORE_PER_10S_AT_MAX_SPEED = 35;
       const FIXED_STEP_MS = 1000 / 120;
       const MAX_FRAME_CATCHUP_MS = 150;
       const ENEMY_PLANS = [
@@ -1241,6 +1260,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         stagePenaltySteps: 0,
         stageIntroMs: 0,
         respawnMs: 0,
+        distanceScoreCarry: 0,
         clearModalOpen: false,
         awaitingStart: true,
         campaignWon: false,
@@ -1392,6 +1412,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         state.stagePenaltySteps = 0;
         state.stageIntroMs = STAGE_INTRO_MS;
         state.respawnMs = 0;
+        state.distanceScoreCarry = 0;
         state.clearModalOpen = false;
         state.campaignWon = false;
         state.currentRunId = null;
@@ -1922,6 +1943,19 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         statusEl.textContent = "Roll over every blinking beacon. Avoid the star cutters.";
       }
 
+      function awardDistanceScore(distancePx, maxSpeedPerTick) {
+        if (distancePx <= 0 || maxSpeedPerTick <= 0) return;
+        const maxDistanceInTenSeconds = maxSpeedPerTick * (10000 / FIXED_STEP_MS);
+        if (maxDistanceInTenSeconds <= 0) return;
+        state.distanceScoreCarry += (distancePx / maxDistanceInTenSeconds) * DISTANCE_SCORE_PER_10S_AT_MAX_SPEED;
+        const awarded = Math.floor(state.distanceScoreCarry);
+        if (awarded <= 0) return;
+        state.distanceScoreCarry -= awarded;
+        state.score += awarded;
+        state.levelScore += awarded;
+        awardExtraBalls();
+      }
+
       function updateFragments() {
         if (!state.exploding) return;
         const next = [];
@@ -2031,6 +2065,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         }
         wallHit(p);
         blockCollide(p, oldX, oldY);
+        awardDistanceScore(Math.hypot(p.x - oldX, p.y - oldY), max);
         p.invincible = Math.max(0, p.invincible - 1);
       }
 
@@ -2163,6 +2198,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
 
       function updateHud() {
         scoreEl.textContent = String(state.score).padStart(5, "0");
+        levelScoreEl.textContent = String(state.levelScore).padStart(5, "0");
         levelEl.textContent = String(state.grade);
         livesEl.textContent = String(state.lives);
         timerEl.textContent = formatTime(state.stageElapsedMs);
@@ -2302,7 +2338,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         }
         const submittedTimeMs = Math.max(1000, Math.floor(result.timeMs));
         try {
-          await leaderboardFetch(LEADERBOARD_FUNCTION_URL, {
+          const payload = await leaderboardFetch(LEADERBOARD_FUNCTION_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/json"
@@ -2318,7 +2354,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
             })
           });
           state.currentRunId = null;
-          return { ok: true };
+          return { ok: true, gradeRank: payload?.gradeRank ?? null };
         } catch (error) {
           return { ok: false, error: String(error && error.message ? error.message : error) };
         }
@@ -2812,6 +2848,8 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         modalTimeEl.textContent = formatTime(result.timeMs);
         modalPenaltyEl.textContent = String(result.penalty).padStart(5, "0");
         modalScoreEl.textContent = String(result.levelScore).padStart(5, "0");
+        modalTotalScoreEl.textContent = String(result.score).padStart(5, "0");
+        modalRankEl.textContent = "#--";
         const text = stageShareText(result);
         const url = window.location.href || "https://example.com";
         const encodedText = encodeURIComponent(text);
@@ -2833,6 +2871,11 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         stageModalEl.classList.add("is-open");
         stageModalEl.setAttribute("aria-hidden", "false");
         const submissionState = await submitTrustedScore(result);
+        if (submissionState.ok && Number.isInteger(submissionState.gradeRank)) {
+          modalRankEl.textContent = `#${submissionState.gradeRank}`;
+        } else if (!submissionState.ok) {
+          modalRankEl.textContent = "--";
+        }
         await populateLeaderboard(result, submissionState);
       }
 
@@ -2873,6 +2916,7 @@ T 7 5 5 5 5 5 6 G 8 8 7 5 5 5 4
         state.lives = 3;
         state.gameOver = false;
         state.loading = true;
+        state.distanceScoreCarry = 0;
         state.frameAccumulator = 0;
         state.lastFrameTime = 0;
         startLevel();
