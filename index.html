@@ -526,125 +526,129 @@
 
       @media (orientation: landscape) and (pointer: coarse), (orientation: landscape) and (max-height: 540px) {
         .shell {
-          padding: 4px;
+          padding: 2px;
+          place-items: start stretch;
         }
 
         .shell-layout {
           width: 100%;
           max-width: 100%;
-          grid-template-columns: 1fr 1fr;
-          gap: 8px;
+          display: block;
+        }
+
+        .side-panel {
+          display: none;
         }
 
         .cabinet {
-          order: 1;
-          grid-column: 1 / -1;
-          width: min(100%, calc((100dvh - 112px) * 4 / 3));
-          margin-inline: auto;
-        }
-
-        .side-panel[aria-label="Leaderboard panel"] {
-          order: 2;
-        }
-
-        .side-panel[aria-label="Tribute note"] {
-          order: 3;
+          width: 100%;
+          height: calc(100dvh - 4px);
+          border-width: 2px;
+          border-radius: 4px;
+          display: grid;
+          grid-template-rows: auto 1fr auto;
         }
 
         .screen-bar {
-          padding: 8px 10px;
-          gap: 10px;
-        }
-
-        .panel {
-          padding: 8px 10px;
-          gap: 10px;
+          flex-wrap: nowrap;
+          align-items: center;
+          justify-content: space-between;
+          padding: 6px 8px;
+          gap: 8px;
+          min-width: 0;
         }
 
         h1 {
-          font-size: 22px;
+          font-size: 20px;
+          flex: 0 0 auto;
+          white-space: nowrap;
         }
 
         .hud {
+          flex: 1 1 auto;
+          justify-content: flex-end;
+          flex-wrap: nowrap;
           gap: 8px;
+          min-width: 0;
+          overflow: hidden;
         }
 
-        .hud span,
-        .panel p,
-        .tribute-text p,
-        .leaderboard-panel h3,
-        .leaderboard-card h4,
-        .leaderboard-card li,
-        .leaderboard-status {
-          font-size: 12px;
+        .hud span {
+          font-size: 11px;
+          white-space: nowrap;
         }
 
-        .side-head {
-          padding: 10px 12px;
-        }
-
-        .side-head h2 {
-          font-size: 18px;
-        }
-
-        .side-body {
-          padding: 10px;
-          max-height: 28dvh;
-          overflow: auto;
+        #music-toggle {
+          min-width: 0;
+          padding: 4px 6px;
+          font-size: 11px;
+          white-space: nowrap;
         }
 
         .game-stage {
-          padding-bottom: 106px;
+          min-height: 0;
+          height: 100%;
+          display: flex;
+          align-items: stretch;
+          justify-content: center;
+          padding: 0 78px;
+        }
+
+        canvas {
+          width: auto;
+          height: 100%;
+          max-width: 100%;
+          aspect-ratio: auto;
+          margin: 0 auto;
+        }
+
+        .panel {
+          min-height: 0;
+          padding: 4px 8px;
+          gap: 8px;
+          flex-wrap: nowrap;
+          align-items: center;
+          justify-content: flex-start;
+        }
+
+        .panel p {
+          flex: 1 1 auto;
+          min-width: 0;
+          font-size: 11px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .controls {
+          display: none;
         }
 
         .touch-joystick {
-          width: 98px;
-          height: 98px;
-          bottom: 8px;
+          width: 78px;
+          height: 78px;
+          left: 6px;
+          bottom: 50%;
+          transform: translateY(50%);
         }
 
         .touch-joystick-base {
-          width: 68px;
-          height: 68px;
+          width: 54px;
+          height: 54px;
         }
 
         .touch-joystick-knob {
-          width: 34px;
-          height: 34px;
+          width: 28px;
+          height: 28px;
         }
 
         .touch-boom {
-          width: 82px;
-          height: 82px;
-          font-size: 15px;
-          bottom: 12px;
-        }
-
-        kbd,
-        .icon-button {
-          min-width: 44px;
-          padding: 5px 7px;
-          font-size: 11px;
-        }
-      }
-
-      @media (orientation: landscape) and (pointer: coarse) {
-        .game-stage {
-          padding-bottom: 0;
-          padding-left: 108px;
-          padding-right: 96px;
-        }
-
-        .touch-joystick {
-          left: 8px;
+          width: 72px;
+          height: 72px;
+          right: 6px;
           bottom: 50%;
           transform: translateY(50%);
-        }
-
-        .touch-boom {
-          right: 8px;
-          bottom: 50%;
-          transform: translateY(50%);
+          font-size: 14px;
         }
       }
     </style>
